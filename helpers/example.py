@@ -26,7 +26,6 @@ from questgen.relations import PROFESSION
 # список ограничений для фактов о мире
 WORLD_RESTRICTIONS = [restrictions.SingleLocationForObject(),
                       restrictions.ReferencesIntegrity()]
-
 # список ограничений для графа задания
 QUEST_RESTRICTIONS =  [restrictions.SingleStartStateWithNoEnters(), # только одна начальная вершина для задания
                        restrictions.FinishStateExists(), # существуют завершающие вершины
@@ -102,7 +101,6 @@ def create_quest():
             facts.OnlyGoodBranches(object='place_2'), # не вредить месту place_2
             facts.OnlyGoodBranches(object='person_4'), # не вредить персонажу person_4
             facts.OnlyBadBranches(object='person_5') ] # не помогать персонажу person_5
-
 
     kb.validate_consistency(WORLD_RESTRICTIONS) # проверяем ограничения на мир,
 

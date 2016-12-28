@@ -43,7 +43,6 @@ class FactMetaclass(records.RecordMetaclass):
     pass
 
 
-
 class Fact(records.Record, metaclass=FactMetaclass):
     uid = FactAttribute(default=None)
     description = FactAttribute(remove_in_short=True, default=None)
@@ -123,16 +122,22 @@ class SubQuest(Fact):
 # Actor classes
 ######################
 
-class Actor(Fact): pass
+class Actor(Fact):
+    pass
 
-class Hero(Actor): pass
+
+class Hero(Actor):
+    pass
+
 
 class Place(Actor):
     terrains = FactAttribute(default=None)
     type = FactAttribute(default=None)
 
+
 class Person(Actor):
     profession = FactAttribute(default=None)
+
 
 class Mob(Actor):
     terrains = FactAttribute(default=None)
@@ -140,6 +145,7 @@ class Mob(Actor):
 ######################
 # States classes
 ######################
+
 
 class State(Fact):
     require = FactAttribute(deserialization_classes=requirements.REQUIREMENTS, default=())
@@ -176,6 +182,7 @@ class FakeFinish(Finish):
 # Choice
 #############
 
+
 class Choice(State): pass
 
 
@@ -197,6 +204,7 @@ class ChoicePath(Fact):
 # Question
 #############
 
+
 class Question(State):
     condition = FactAttribute(deserialization_classes=requirements.REQUIREMENTS)
 
@@ -209,12 +217,15 @@ class Answer(Jump):
 # Conditions
 #############
 
-class Condition(Fact): pass
+class Condition(Fact):
+    pass
+
 
 class SocialConnection(Condition):
     person_from = FactAttribute(is_reference=True, is_uid=True)
     person_to = FactAttribute(is_reference=True, is_uid=True)
     type = FactAttribute()
+
 
 class LocatedIn(Condition):
     object = FactAttribute(is_reference=True, is_uid=True)
@@ -293,7 +304,9 @@ class UpgradeEquipmentCost(Fact):
 # Restrictions classes
 ######################
 
-class Restriction(Fact): pass
+class Restriction(Fact):
+    pass
+
 
 class OnlyGoodBranches(Restriction):
     object = FactAttribute(is_reference=True, is_uid=True)
@@ -319,7 +332,9 @@ class NotFirstInitiator(Restriction):
 # Markers classes
 ######################
 
-class Marker(Fact): pass
+class Marker(Fact):
+    pass
+
 
 class ProfessionMarker(Marker):
     person = FactAttribute(is_reference=True, is_uid=True)

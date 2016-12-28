@@ -1,7 +1,6 @@
 # coding:utf-8
 
-import gv
-
+import graphviz as gv
 from questgen import facts
 from questgen import requirements
 from questgen import actions
@@ -19,6 +18,7 @@ def link_colors_generator():
 
 
 link_colors = link_colors_generator()
+
 
 class HEAD_COLORS(object):
     START = '#eeeeee'
@@ -51,13 +51,13 @@ class HEAD_COLORS(object):
     JUMP_ACTIONS_END = '#dddddd'
     JUMP_MARKER = '#aadddd'
 
+
 class TEXT_COLORS:
     NORMAL = '#000000'
     PROFESSION = '#aa55aa'
 
 
 class SubGraph(object):
-
     def __init__(self, uid, color, members):
         self.uid = 'cluster_%s' % uid
         self.color = color
@@ -78,7 +78,8 @@ class SubGraph(object):
         real_children = set()
 
         for child in self.children:
-            if not any(child in check_child.children for check_child in self.children):
+            if not any(child in check_child.children for check_child in
+                       self.children):
                 real_children.add(child)
 
         self.children = real_children
@@ -92,80 +93,117 @@ class SubGraph(object):
             subgraph.draw(graph, nodes, nesting=0)
 
     def draw(self, graph, nodes, nesting):
-        subgraph = gv.graph(graph, self.uid.encode('utf-8'))
-        gv.setv(subgraph, 'label', self.uid.encode('utf-8'))
+
+        subgraph = gv.Graph(graph, self.uid, directory='none',
+                            graph_attr={
+                                'label': self.uid,
+                                'shape': 'box',
+                                'bgcolor': self.color % (150 + nesting * 25)  if '%' in self.color else self.color
+        })
+
+        # gv.setv(subgraph, 'label', self.uid.encode('utf-8'))
         # gv.setv(subgraph, 'rank', 'same')
-        gv.setv(subgraph, 'shape', 'box')
-        gv.setv(subgraph, 'bgcolor', self.color % (150+nesting*25) if '%' in self.color else self.color)
+        # subgraph.setv(subgraph, 'shape', 'box')
+        # gv.setv(subgraph, 'bgcolor', self.color % (
+        #     150 + nesting * 25) if '%' in self.color else self.color)
 
         for node_uid in self.members:
             if node_uid in nodes:
-                gv.node(subgraph, node_uid.encode('utf-8'))
+                subgraph.node(node_uid)
 
         for child in self.children:
-            child.draw(subgraph, nodes, nesting=nesting+1)
+            child.draw(subgraph, nodes, nesting=nesting + 1)
 
 
 class Drawer(object):
-
     def __init__(self, knowledge_base):
         self.kb = knowledge_base
-        self.graph = gv.strictdigraph('quest')
+        self.graph = gv.Digraph('quest')
         self.nodes = {}
         self.subgraphs = {}
 
         self.linked_edges = set()
 
     def add_node(self, fact):
-        node = gv.node(self.graph, fact.uid.encode('utf-8'))
-        gv.setv(node, 'shape', 'plaintext')
-        gv.setv(node, 'label', self.create_label_for(fact).encode('utf-8'))
-        gv.setv(node, 'fontsize', '10')
+
+        node = self.graph.node(fact.uid,
+                               label=self.create_label_for(fact),
+                               _attributes={'fontsize': '10'}
+                               )
+        # self.graph.node (node, 'shape', 'plaintext')
+        # gv.setv(node, 'label', self.create_label_for(fact).encode('utf-8'))
+        # gv.setv(node, 'fontsize', '10')
 
         self.nodes[fact.uid] = node
 
         return node
 
     def _add_edge(self, jump):
-        node = gv.node(self.graph, jump.uid.encode('utf-8'))
+        self.graph.node(name=jump.uid,
+                        label=self.create_label_for(jump),
+                        _attributes=
+                        {
+                            'shape': 'plaintext',
+                            'fontsize': '10'
+                        })
+        self.graph.edge(tail_name=jump.state_from,
+                        head_name=jump.uid,
+                        _attributes={'weight': '40',
+                                     'minlen': '1',
+                                     'dir': 'none'})
 
-        gv.setv(node, 'shape', 'plaintext')
-        gv.setv(node, 'label', self.create_label_for(jump).encode('utf-8'))
-        gv.setv(node, 'fontsize', '10')
+        self.graph.edge(tail_name=jump.uid,
+                        head_name=jump.state_from,
+                        _attributes={'weight': '40',
+                                     'minlen': '1',
+                                     'dir': 'none'})
 
-        self.nodes[jump.uid] = node
-
-        edge_1 = gv.edge(self.nodes[jump.state_from], node)
-        edge_2 = gv.edge(node, self.nodes[jump.state_to])
-
-        gv.setv(edge_1, 'dir', 'none')
-        gv.setv(edge_1, 'tailport', jump.state_from.encode('utf-8'))
-        gv.setv(edge_1, 'headport', jump.uid.encode('utf-8'))
-        gv.setv(edge_1, 'weight', '40')
-        gv.setv(edge_1, 'minlen', '1')
-
-        gv.setv(edge_2, 'tailport', jump.uid.encode('utf-8'))
-        gv.setv(edge_2, 'headport', jump.state_to.encode('utf-8'))
-        gv.setv(edge_2, 'weight', '40')
-        gv.setv(edge_2, 'minlen', '1')
-
+        # node = gv.node(self.graph, jump.uid.encode('utf-8'))
+        #
+        # gv.setv(node, 'shape', 'plaintext')
+        # gv.setv(node, 'label', self.create_label_for(jump).encode('utf-8'))
+        # gv.setv(node, 'fontsize', '10')
+        #
+        # self.nodes[jump.uid] = node
+        #
+        # edge_1 = gv.edge(self.nodes[jump.state_from], node)
+        # edge_2 = gv.edge(node, self.nodes[jump.state_to])
+        #
+        # gv.setv(edge_1, 'dir', 'none')
+        # gv.setv(edge_1, 'tailport', jump.state_from.encode('utf-8'))
+        # gv.setv(edge_1, 'headport', jump.uid.encode('utf-8'))
+        # gv.setv(edge_1, 'weight', '40')
+        # gv.setv(edge_1, 'minlen', '1')
+        #
+        # gv.setv(edge_2, 'tailport', jump.uid.encode('utf-8'))
+        # gv.setv(edge_2, 'headport', jump.state_to.encode('utf-8'))
+        # gv.setv(edge_2, 'weight', '40')
+        # gv.setv(edge_2, 'minlen', '1')
+        # TODO изменить стиль
         if isinstance(jump, facts.Option):
-            gv.setv(edge_1, 'style', 'dotted')
-            gv.setv(edge_2, 'style', 'dotted')
+            pass
+            # gv.setv(edge_1, 'style', 'dotted')
+            # gv.setv(edge_2, 'style', 'dotted')
 
         if isinstance(jump, facts.Answer):
             pass
 
     def _add_empty_edge(self, jump):
-        edge = gv.edge(self.nodes[jump.state_from], self.nodes[jump.state_to])
-        gv.setv(edge, 'headport', jump.state_to.encode('utf-8'))
-        gv.setv(edge, 'tailport', jump.state_from.encode('utf-8'))
-        gv.setv(edge, 'weight', '20')
-        gv.setv(edge, 'minlen', '1')
 
+        self.graph.edge(jump.state_from,
+                        jump.state_to,
+                        _attributes=
+                        {'weight': '20',
+                         'minlen': '1',
+                         })
+        # gv.setv(edge, 'headport', jump.state_to.encode('utf-8'))
+        # gv.setv(edge, 'tailport', jump.state_from.encode('utf-8'))
+        # gv.setv(edge, 'weight', '20')
+        # gv.setv(edge, 'minlen', '1')
 
     def add_edge(self, jump):
-        if hasattr(jump, 'type') or hasattr(jump, 'condition') or jump.start_actions or jump.end_actions:
+        if hasattr(jump, 'type') or hasattr(jump,
+                                            'condition') or jump.start_actions or jump.end_actions:
             self._add_edge(jump)
         else:
             self._add_empty_edge(jump)
@@ -175,29 +213,33 @@ class Drawer(object):
         color = next(link_colors)
 
         for option_uid in link.options:
-            option = self.nodes[option_uid]
-            gv.setv(option, 'style', 'filled')
-            gv.setv(option, 'color', color)
+            self.graph.node(name=option_uid, _attributes={
+                'style': 'filled',
+                'color': color
+            })
+            # option = self.nodes[option_uid]
+            # gv.setv(option, 'style', 'filled')
+            # gv.setv(option, 'color', color)
 
-        # node = gv.node(self.graph, link.uid)
-        # gv.setv(node, 'shape', 'circle')
-        # gv.setv(node, 'label', 'link')
-        # gv.setv(node, 'fontsize', '10')
-        # gv.setv(node, 'style', 'filled')
-        # gv.setv(node, 'fillcolor', HEAD_COLORS.LINK)
-        # gv.setv(node, 'fixedsize', 'true')
-        # gv.setv(node, 'width', '0.33')
+            # node = gv.node(self.graph, link.uid)
+            # gv.setv(node, 'shape', 'circle')
+            # gv.setv(node, 'label', 'link')
+            # gv.setv(node, 'fontsize', '10')
+            # gv.setv(node, 'style', 'filled')
+            # gv.setv(node, 'fillcolor', HEAD_COLORS.LINK)
+            # gv.setv(node, 'fixedsize', 'true')
+            # gv.setv(node, 'width', '0.33')
 
-        # self.nodes[link.uid] = node
+            # self.nodes[link.uid] = node
 
-        # for option_uid in link.options:
-        #     self.linked_edges.add(option_uid)
-        #     edge = gv.edge(node, option_uid)
-        #     gv.setv(edge, 'dir', 'none')
-        #     gv.setv(edge, 'color', HEAD_COLORS.LINK)
-        #     gv.setv(edge, 'minlen', '1')
-        #     gv.setv(edge, 'headport', option_uid)
-        #     gv.setv(edge, 'weight', '10')
+            # for option_uid in link.options:
+            #     self.linked_edges.add(option_uid)
+            #     edge = gv.edge(node, option_uid)
+            #     gv.setv(edge, 'dir', 'none')
+            #     gv.setv(edge, 'color', HEAD_COLORS.LINK)
+            #     gv.setv(edge, 'minlen', '1')
+            #     gv.setv(edge, 'headport', option_uid)
+            #     gv.setv(edge, 'weight', '10')
 
     def draw(self, path):
 
@@ -217,10 +259,14 @@ class Drawer(object):
         subgraphs = []
 
         for event in self.kb.filter(facts.Event):
-            subgraphs.append(SubGraph(uid=event.uid, color=HEAD_COLORS.EVENT_SUBGRAPH, members=event.members))
+            subgraphs.append(
+                SubGraph(uid=event.uid, color=HEAD_COLORS.EVENT_SUBGRAPH,
+                         members=event.members))
 
         for subquest in self.kb.filter(facts.SubQuest):
-            subgraphs.append(SubGraph(uid=subquest.uid, color=HEAD_COLORS.SUBQUEST_SUBGRAPH, members=subquest.members))
+            subgraphs.append(
+                SubGraph(uid=subquest.uid, color=HEAD_COLORS.SUBQUEST_SUBGRAPH,
+                         members=subquest.members))
 
         for subgraph in subgraphs:
             subgraph.find_children(subgraphs)
@@ -230,10 +276,11 @@ class Drawer(object):
 
         SubGraph.draw_hierarchy(subgraphs, self.graph, self.nodes)
 
-        gv.layout(self.graph, 'dot');
+        # gv.layout(self.graph, 'dot');
+        # self.graph.
         # gv.render(self.graph, 'dot')
-        gv.render(self.graph, path[path.rfind('.')+1:], path)
-
+        self.graph.render('test.svg', '/programming')
+        # gv.render(self.graph, path[path.rfind('.') + 1:], path)
 
     def create_label_for(self, fact):
         if isinstance(fact, facts.Start):
@@ -297,32 +344,43 @@ class Drawer(object):
 
         for requirement in state.require:
             requirement_colspan = 2
-            trs.append(tr(td(self.create_label_for_requirement(requirement), bgcolor=requirements_bgcolor, colspan=requirement_colspan)))
+            trs.append(tr(td(self.create_label_for_requirement(requirement),
+                             bgcolor=requirements_bgcolor,
+                             colspan=requirement_colspan)))
 
         actions_colspan = 0
 
         for action in state.actions:
             actions_colspan = 2
-            trs.append(tr(td(self.create_label_for_action(action), bgcolor=actions_bgcolor, colspan=actions_colspan)))
+            trs.append(tr(td(self.create_label_for_action(action),
+                             bgcolor=actions_bgcolor,
+                             colspan=actions_colspan)))
 
         condition_colspan = 0
         if hasattr(state, 'condition'):
             condition_colspan = 2
-            trs.append(tr(td('<b>условия:</b>', bgcolor=bgcolor, colspan=condition_colspan)))
+            trs.append(tr(td('<b>условия:</b>', bgcolor=bgcolor,
+                             colspan=condition_colspan)))
             for condition in state.condition:
-                trs.append(tr(td('<b>если </b>'), td(self.create_label_for_requirement(condition), bgcolor=bgcolor)))
+                trs.append(tr(td('<b>если </b>'),
+                              td(self.create_label_for_requirement(condition),
+                                 bgcolor=bgcolor)))
 
         results_colspan = 0
 
         if hasattr(state, 'results'):
             results_colspan = 2
-            trs.append(tr(td('<b>результаты:</b>', bgcolor=bgcolor, colspan=results_colspan)))
+            trs.append(tr(td('<b>результаты:</b>', bgcolor=bgcolor,
+                             colspan=results_colspan)))
             results_order = sorted(state.results.keys())
             for object_uid in results_order:
-                trs.append(tr(td('<b>%s</b>' % object_uid), td(state.results[object_uid])))
+                trs.append(tr(td('<b>%s</b>' % object_uid),
+                              td(state.results[object_uid])))
 
         return table(tr(*head),
-                     tr(td(state.description, colspan=max(head_colspan, requirement_colspan, actions_colspan, results_colspan))),
+                     tr(td(state.description,
+                           colspan=max(head_colspan, requirement_colspan,
+                                       actions_colspan, results_colspan))),
                      *trs,
                      bgcolor=bgcolor,
                      port=state.uid)
@@ -339,7 +397,8 @@ class Drawer(object):
         elif isinstance(requirement, requirements.LocatedOnRoad):
             return self.create_label_for_located_on_road(requirement)
 
-        raise exceptions.CanNotCreateLabelForRequirementError(requirement=requirement)
+        raise exceptions.CanNotCreateLabelForRequirementError(
+            requirement=requirement)
 
     def create_label_for_action(self, action):
         if isinstance(action, actions.Message):
@@ -370,7 +429,8 @@ class Drawer(object):
             trs.append(tr(td(jump.type, bgcolor=HEAD_COLORS.JUMP)))
 
         if hasattr(jump, 'condition'):
-            trs.append(tr(td('ИСТИНА' if jump.condition else 'ЛОЖЬ', bgcolor=HEAD_COLORS.JUMP)))
+            trs.append(tr(td('ИСТИНА' if jump.condition else 'ЛОЖЬ',
+                             bgcolor=HEAD_COLORS.JUMP)))
 
         if hasattr(jump, 'markers') and jump.markers:
             strings = {relations.OPTION_MARKERS.HONORABLE: '[честь]',
@@ -379,46 +439,56 @@ class Drawer(object):
                        relations.OPTION_MARKERS.UNAGGRESSIVE: '[миролюбие]'}
 
             for marker in jump.markers:
-                trs.append(tr(td(strings[marker], bgcolor=HEAD_COLORS.JUMP_MARKER)))
+                trs.append(
+                    tr(td(strings[marker], bgcolor=HEAD_COLORS.JUMP_MARKER)))
 
         for action in jump.start_actions:
-            trs.append(tr(td(self.create_label_for_action(action), bgcolor=HEAD_COLORS.JUMP_ACTIONS_START)))
+            trs.append(tr(td(self.create_label_for_action(action),
+                             bgcolor=HEAD_COLORS.JUMP_ACTIONS_START)))
 
         for action in jump.end_actions:
-            trs.append(tr(td(self.create_label_for_action(action), bgcolor=HEAD_COLORS.JUMP_ACTIONS_END)))
+            trs.append(tr(td(self.create_label_for_action(action),
+                             bgcolor=HEAD_COLORS.JUMP_ACTIONS_END)))
 
         return table(*trs, port=jump.uid, border=0)
 
     def create_label_for_located_in(self, requirement):
-        return '%s <b>находится в</b>&nbsp;%s' % (requirement.object, requirement.place)
+        return '%s <b>находится в</b>&nbsp;%s' % (
+            requirement.object, requirement.place)
 
     def create_label_for_located_near(self, requirement):
-        return '%s <b>находится около</b>&nbsp;%s' % (requirement.object, requirement.place)
+        return '%s <b>находится около</b>&nbsp;%s' % (
+            requirement.object, requirement.place)
 
     def create_label_for_located_on_road(self, requirement):
-        return ('%s <b>прошёл</b>&nbsp;%d%%<b> дороги от</b>&nbsp;%s <b>до</b>&nbsp;%s' %
-                (requirement.object, int(requirement.percents*100), requirement.place_from, requirement.place_to))
+        return (
+            '%s <b>прошёл</b>&nbsp;%d%%<b> дороги от</b>&nbsp;%s <b>до</b>&nbsp;%s' %
+            (requirement.object, int(requirement.percents * 100),
+             requirement.place_from, requirement.place_to))
 
     def create_label_for_has_money(self, requirement):
-        return '%s <b>имеет </b>&nbsp;%s <b>монет</b>' % (requirement.object, requirement.money)
+        return '%s <b>имеет </b>&nbsp;%s <b>монет</b>' % (
+            requirement.object, requirement.money)
 
     def create_label_for_is_alive(self, requirement):
         return '%s <b>жив</b>' % (requirement.object)
 
-
     def create_action_label_for_move_near(self, requirement):
         if requirement.terrains:
-            return '<b>отправить </b> %s<b>бродить около</b>&nbsp;%s<br/> среди ландшафтов %s' % (requirement.object, requirement.place, requirement.terrains)
+            return '<b>отправить </b> %s<b>бродить около</b>&nbsp;%s<br/> среди ландшафтов %s' % (
+                requirement.object, requirement.place, requirement.terrains)
         elif requirement.place is None:
             return '<b>отправить </b> %s<b>бродить в округе</b><br/>' % requirement.object
         else:
-            return '<b>отправить </b> %s<b>бродить около</b>&nbsp;%s<br/>' % (requirement.object, requirement.place)
+            return '<b>отправить </b> %s<b>бродить около</b>&nbsp;%s<br/>' % (
+                requirement.object, requirement.place)
 
     def create_action_label_for_message(self, message):
         return '<b>сообщение:</b>&nbsp;%s' % message.type
 
     def create_action_label_for_give_reward(self, give_reward):
-        return '<b>выдать награду </b>&nbsp; %s <b>типа </b> %s <b>в размере</b> %.2f' % (give_reward.object, give_reward.type, give_reward.scale)
+        return '<b>выдать награду </b>&nbsp; %s <b>типа </b> %s <b>в размере</b> %.2f' % (
+            give_reward.object, give_reward.type, give_reward.scale)
 
     def create_action_label_for_fight(self, fight):
         if fight.mob:
@@ -442,7 +512,10 @@ class Drawer(object):
 
 
 def b(data): return '<b>%s</b>' % data
+
+
 def i(data): return '<i>%s</i>' % data
+
 
 def table(*trs, **kwargs):
     bgcolor = kwargs.get('bgcolor')
@@ -460,8 +533,10 @@ def table(*trs, **kwargs):
             'port': 'port="%s"' % port if port else '',
             'bgcolor': 'BGCOLOR="%s"' % bgcolor if bgcolor is not None else ''}
 
+
 def tr(*tds):
     return '<tr BGCOLOR="#00ff00">%s</tr>' % ''.join(tds)
+
 
 def td(body, port=None, **kwargs):
     bgcolor = kwargs.get('bgcolor')
@@ -478,4 +553,4 @@ def td(body, port=None, **kwargs):
                                                  'align': align,
                                                  'border': border,
                                                  'port': 'port="%s"' % port if port else '',
-                                                 'bgcolor': 'BGCOLOR="%s"' % bgcolor if bgcolor is not None else '' }
+                                                 'bgcolor': 'BGCOLOR="%s"' % bgcolor if bgcolor is not None else ''}
